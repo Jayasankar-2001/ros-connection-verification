@@ -23,23 +23,26 @@ valid_ipv4() {
    done
 }
 
+export -f valid_ipv4
+export -f ipaddr
+
 # Function to reset network configuration
 reset_network() {
   echo "Resetting network configuration..."
   # You may need to adjust this command based on your network configuration
   sudo netplan apply >> /dev/null 2>&1
   ipaddr
-  SECONDS=0
   
-  while [ $SECONDS -le 5 ]; do    
-    if ! valid_ipv4 "$ip_address"; then
-      echo "$interface IP connectivity is OK. IP address: $ip_address"
-      echo "$(date +'%Y-%m-%d %H:%M:%S') - Ethernet IP connectivity is OK. IP address: $ip_address" >> "$log_file"
+  timeout 5 bash -c "
+   while :; do
+    if ! valid_ipv4 '$ip_address'; then
+      echo '$interface IP connectivity is OK. IP address: $ip_address'
+      echo \"\$(date +'%Y-%m-%d %H:%M:%S') - Ethernet IP connectivity is OK. IP address: $ip_address\" >> \"$log_file\"
       exit 0
     fi
     sleep 1
-    SECONDS=$((SECONDS+1))
-  done
+   done
+  "
   
   # If connectivity issue persists after 5 seconds, report error
   echo "Failed to restore Ethernet IP connectivity."
@@ -57,7 +60,7 @@ fi
 
 if [ -z "$ip_address" ]; then
   echo "No IP address assigned to $interface."
-  reset_network
+  exit 0
 fi
 
 # Validate the IP address of the Ethernet interface
