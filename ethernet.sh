@@ -5,11 +5,13 @@ echo "Ethernet connectivity status"
 log_file="$HOME/triz_labs/internet_status.log"
 mkdir -p "$(dirname "$log_file")"
 
-# Detect Ethernet interface
-interface=$(nmcli connection show --active | grep wifi | awk '{print $4}')
+ipaddr() {
+   # Detect Ethernet interface
+   interface=$(nmcli connection show --active | grep ethernet | awk '{print $6}')
 
-# Get the IP address of the interface (using awk for better reliability)
-ip_address=$(ip addr show "$interface" | awk '/inet /{print $2}' | cut -d '/' -f 1)
+   # Get the IP address of the interface (using awk for better reliability)
+   ip_address=$(ip addr show "$interface" | awk '/inet /{print $2}' | cut -d '/' -f 1)
+}
 
 # Function to validate IPv4 address
 valid_ipv4() {
@@ -26,6 +28,7 @@ reset_network() {
   echo "Resetting network configuration..."
   # You may need to adjust this command based on your network configuration
   sudo netplan apply >> /dev/null 2>&1
+  ipaddr
   SECONDS=0
   
   while [ $SECONDS -le 5 ]; do    
@@ -43,6 +46,8 @@ reset_network() {
   echo "$(date +'%Y-%m-%d %H:%M:%S') - Failed to restore Ethernet IP connectivity." >> "$log_file"
   exit 1
 }
+
+ipaddr
 
 # Check if the interface is up
 if ! ip link show "$interface" up &>/dev/null; then
